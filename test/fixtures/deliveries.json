@@ -1,0 +1,165 @@
+{
+    "success": true,
+    "deliveries": [
+        {
+            "carrier_code": "amzlus",
+            "description": "Stainless Steel Water Bottle with Straw Lid, 32 o…",
+            "status_code": 2,
+            "tracking_number": "111-1000000-2000000",
+            "extra_information": "Tok0enAbc0",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Package left the shipper facility",
+                    "date": "Monday, August 24 "
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Adjustable Laptop Stand for Desk – Ergonomic Alum…",
+            "status_code": 2,
+            "tracking_number": "111-1000001-2000001",
+            "extra_information": "Tok1enAbc1",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Package left the shipper facility",
+                    "date": "Monday, August 24 "
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Wireless Charging Pad for Phone and Earbuds, 15W …",
+            "status_code": 8,
+            "tracking_number": "111-1000002-2000002",
+            "extra_information": "Tok2enAbc2",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Preparing for shipment",
+                    "date": "--//--"
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Multipurpose Copy Printer Paper, 8.5 x 11 Inches,…",
+            "status_code": 8,
+            "tracking_number": "111-1000003-2000003",
+            "extra_information": "Tok3enAbc3",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Preparing for shipment",
+                    "date": "--//--"
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Kitchen Knife Set with Wooden Block, 4 Piece Stai…",
+            "status_code": 8,
+            "tracking_number": "111-1000004-2000004",
+            "extra_information": "Tok4enAbc4",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Preparing for shipment",
+                    "date": "--//--"
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Silicone Dish Drying Mat for Kitchen Counter, Lar…",
+            "status_code": 0,
+            "tracking_number": "113-1000005-2000005",
+            "extra_information": "Tok5enAbc5",
+            "events": [
+                {
+                    "event": "Delivered in the mailroom",
+                    "date": "Monday, August 24 5:00 PM",
+                    "location": "Springfield, US"
+                },
+                {
+                    "event": "Package is out for delivery.",
+                    "date": "Monday, August 24 1:02 PM",
+                    "location": "Springfield, US"
+                },
+                {
+                    "event": "Package being processed at carrier facility.",
+                    "date": "Monday, August 24 5:26 AM",
+                    "location": "Springfield, US"
+                },
+                {
+                    "event": "Package arrived at a carrier facility.",
+                    "date": "Monday, August 24 5:14 AM",
+                    "location": "Springfield, US"
+                },
+                {
+                    "event": "Package left an Amazon facility.",
+                    "date": "Monday, August 24 2:45 AM",
+                    "location": "Shelbyville, FL US"
+                },
+                {
+                    "event": "Package arrived at an Amazon facility.",
+                    "date": "Monday, August 24 1:13 AM",
+                    "location": "Shelbyville, FL US"
+                },
+                {
+                    "event": "Package left the shipper facility",
+                    "date": "Monday, August 24 "
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Cotton Bath Towel Set, 6 Piece Quick Dry Absorben…",
+            "status_code": 8,
+            "tracking_number": "114-1000006-2000006",
+            "extra_information": "Tok6enAbc6",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Preparing for shipment",
+                    "date": "--//--"
+                }
+            ]
+        },
+        {
+            "carrier_code": "amzlus",
+            "description": "Cordless Handheld Vacuum Cleaner for Car and Hom …",
+            "status_code": 8,
+            "tracking_number": "114-1000007-2000007",
+            "extra_information": "Tok7enAbc7",
+            "date_expected": "2026-08-25 00:00:00",
+            "events": [
+                {
+                    "event": "Preparing for shipment",
+                    "date": "--//--"
+                }
+            ]
+        },
+        {
+            "carrier_code": "ups",
+            "description": "Concert tickets",
+            "status_code": 2,
+            "tracking_number": "1Z999AA10123456784",
+            "date_expected": "2026-08-26 13:15:00",
+            "date_expected_end": "2026-08-26 16:15:00",
+            "events": [
+                {
+                    "event": "Arrived at Facility",
+                    "date": "2026-08-24 18:44",
+                    "location": "Springfield, TX, United States"
+                },
+                {
+                    "event": "Shipper created a label, UPS has not received the package yet.",
+                    "date": "2026-08-18 15:22"
+                }
+            ]
+        }
+    ]
+}

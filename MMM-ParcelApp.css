@@ -1,0 +1,137 @@
+/* MMM-ParcelApp
+ *
+ * Tuned to be read at a glance from across a room: the three needs-action
+ * states (exception, failed attempt, ready to collect) get a marker and a
+ * heavier weight so they stay distinct from the merely informational ones,
+ * not just higher up the list.
+ *
+ * The custom properties are declared on :root, not on the wrapper, so that
+ * redefining one in custom.css actually wins — a declaration on the element
+ * being styled would beat any inherited override.
+ */
+
+:root {
+  --parcel-width: 360px;
+  --parcel-alert: #ff6b6b;
+  --parcel-warn: #ffb454;
+  --parcel-good: #7ddc8c;
+}
+
+.MMM-ParcelApp .parcel-wrapper {
+  width: var(--parcel-width, 360px);
+  max-width: 100%;
+  text-align: left;
+}
+
+.MMM-ParcelApp .parcel-row {
+  margin-bottom: 0.55em;
+  line-height: 1.25;
+}
+
+.MMM-ParcelApp .parcel-row:last-child {
+  margin-bottom: 0;
+}
+
+.MMM-ParcelApp .parcel-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+}
+
+/* min-width: 0 is what lets the ellipsis actually happen inside a flex item. */
+.MMM-ParcelApp .parcel-desc,
+.MMM-ParcelApp .parcel-sub {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.MMM-ParcelApp .parcel-status,
+.MMM-ParcelApp .parcel-due {
+  flex: 0 0 auto;
+}
+
+.MMM-ParcelApp .parcel-desc {
+  font-size: 18px;
+  color: var(--color-text-bright, #fff);
+}
+
+.MMM-ParcelApp .parcel-status {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--color-text, #999);
+}
+
+.MMM-ParcelApp .parcel-line-sub {
+  font-size: 14px;
+  color: var(--color-text-dimmed, #666);
+}
+
+/* Needs action: exception, failed attempt, ready to collect, and a "not found"
+ * that has outlived its grace period. */
+.MMM-ParcelApp .parcel-attention .parcel-desc {
+  font-weight: 700;
+}
+
+.MMM-ParcelApp .parcel-attention .parcel-desc::before {
+  content: "\25CF\00A0";          /* ● */
+  font-size: 0.8em;
+  vertical-align: 0.1em;
+}
+
+.MMM-ParcelApp .parcel-tone-alert .parcel-desc,
+.MMM-ParcelApp .parcel-tone-alert .parcel-status {
+  color: var(--parcel-alert);
+}
+
+.MMM-ParcelApp .parcel-tone-warn .parcel-desc,
+.MMM-ParcelApp .parcel-tone-warn .parcel-status {
+  color: var(--parcel-warn);
+}
+
+.MMM-ParcelApp .parcel-tone-good .parcel-status {
+  color: var(--parcel-good);
+}
+
+.MMM-ParcelApp .parcel-tone-normal .parcel-desc {
+  color: var(--color-text-bright, #fff);
+}
+
+.MMM-ParcelApp .parcel-tone-dim .parcel-desc,
+.MMM-ParcelApp .parcel-tone-dim .parcel-status {
+  color: var(--color-text-dimmed, #666);
+}
+
+/* Delivered, and only for its 48 hour window. */
+.MMM-ParcelApp .parcel-tone-done .parcel-desc,
+.MMM-ParcelApp .parcel-tone-done .parcel-status {
+  color: var(--color-text, #999);
+}
+
+/* The collapsed "N more preparing for shipment" row. */
+.MMM-ParcelApp .parcel-summary .parcel-desc {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--color-text-dimmed, #666);
+}
+
+/* The API's own error_message is shown verbatim but must stay on one line. */
+.MMM-ParcelApp .parcel-note {
+  font-size: 15px;
+  color: var(--color-text-dimmed, #666);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.MMM-ParcelApp .parcel-message {
+  color: var(--parcel-alert);
+}
+
+.MMM-ParcelApp .parcel-stale {
+  margin-top: 0.5em;
+  font-size: 13px;
+  font-style: italic;
+}
