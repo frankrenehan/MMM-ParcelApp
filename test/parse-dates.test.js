@@ -164,6 +164,22 @@ test("a valid date followed by anything unrecognised is rejected", () => {
   assertDate(parseEventDate("2026-08-13T06:22"), at(2026, 8, 13, 6, 22), "T separator");
 });
 
+test("FedEx sends ISO timestamps with milliseconds", () => {
+  // Found in live data, not invented. Anchoring the pattern to reject trailing
+  // garbage caught this legitimate shape too; the fractional part is discarded
+  // but must not cost us the whole timestamp.
+  assertDate(parseEventDate("2026-08-16 19:00:59.208"), at(2026, 8, 16, 19, 0), "millis");
+  assertDate(parseEventDate("2026-08-15 00:40:43.000"), at(2026, 8, 15, 0, 40), "zero millis");
+  assertDate(parseEventDate("2026-08-12 14:07:19.104"), at(2026, 8, 12, 14, 7), "millis");
+  assertDate(parseEventDate("2026-08-16T19:00:59.208"), at(2026, 8, 16, 19, 0), "T separator");
+  assertDate(parseEventDate("16.08.2026 19:00:59.208"), at(2026, 8, 16, 19, 0), "dotted too");
+
+  // Without swallowing anything else that trails a timestamp.
+  for (const input of ["2026-08-13 06:22.5.5", "2026-08-13 06:22:11.", "2026-08-13 06:22:60.100",
+    "2026-08-13 06:22:11.208Z", "2026-08-13 06:22:11.208 junk"])
+    assert.equal(parseEventDate(input), null, `should be rejected: ${input}`);
+});
+
 test("a local time the clock skips is normalised, not rejected", () => {
   // Validation is on the input's ranges. Checking that the constructed Date
   // came back with the hour asked for would reject a real event logged during

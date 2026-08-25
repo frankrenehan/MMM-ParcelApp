@@ -147,7 +147,7 @@ const matchEventDate = (raw, now = new Date()) => {
 
   // 11.08.2026 10:07 — Deutsche Post / An Post. Day first: never hand this to
   // new Date(), which reads it as 8 November.
-  if ((m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/))) {
+  if ((m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/))) {
     const hasTime = m[4] !== undefined;
     const hours = hasTime ? +m[4] : 0;
     const minutes = hasTime ? +m[5] : 0;
@@ -156,8 +156,11 @@ const matchEventDate = (raw, now = new Date()) => {
   }
 
   // 2026-08-13 06:22 — UPS. The optional seconds also cover date_expected,
-  // which arrives as 2026-08-25 00:00:00.
-  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/))) {
+  // which arrives as 2026-08-25 00:00:00, and the fractional part covers FedEx,
+  // which sends 2026-08-16 19:00:59.208. Seen in live data, not invented: the
+  // millisecond is discarded, but rejecting the whole timestamp over it would
+  // lose a real event time.
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/))) {
     const hasTime = m[4] !== undefined;
     const hours = hasTime ? +m[4] : 0;
     const minutes = hasTime ? +m[5] : 0;
