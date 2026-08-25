@@ -93,6 +93,7 @@ const CONFIG_DEFAULTS = Object.freeze({
   apiKeyEnvVar: "PARCEL_API_KEY",
   updateInterval: 20 * MS_MINUTE,
   maxItems: 6,
+  maxPerCarrier: 2,
   deliveredWindowHours: 48,
   notFoundGraceHours: 24,
   showCarrier: true,
@@ -341,6 +342,7 @@ const normaliseConfig = (raw = {}, logger = NOOP_LOGGER) => {
   // rate limit, and the responses are server-cached so it would gain nothing.
   num("updateInterval", { min: MIN_UPDATE_INTERVAL, max: 24 * MS_HOUR });
   num("maxItems", { min: 1, max: 50, integer: true });
+  num("maxPerCarrier", { min: 0, max: 50, integer: true });   // 0 disables it
   num("deliveredWindowHours", { min: 0, max: 24 * 30 });
   num("notFoundGraceHours", { min: 0, max: 24 * 30 });
   num("fadePoint", { min: 0, max: 1 });
@@ -495,6 +497,11 @@ const buildDeliveries = (data, {
       rank: status.rank,
       description: formatDescription(delivery.description),
       carrier: config.showCarrier ? carrierName(delivery.carrier_code, carriers) : null,
+      // Always present, even when the name is not displayed: the per-carrier
+      // cap has to group by something.
+      carrierKey: typeof delivery.carrier_code === "string" && delivery.carrier_code.trim()
+        ? delivery.carrier_code.trim().toLowerCase()
+        : null,
       event: latest && typeof latest.event === "string" && latest.event.trim()
         ? latest.event.trim()
         : null,
@@ -517,7 +524,8 @@ const buildDeliveries = (data, {
     || (b.sortTime ?? -Infinity) - (a.sortTime ?? -Infinity)
     || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 
-  const collapsed = collapseLabelCreated(items);
+  const collapsed = collapseByCarrier(
+    collapseLabelCreated(items), config.maxPerCarrier, config.showCarrier);
   const total = collapsed.length;
   return { items: collapsed.slice(0, config.maxItems), total };
 };
@@ -543,6 +551,7 @@ const collapseLabelCreated = (items) => {
     // visible item for the summary to be "more" than.
     description: `${indexes.length} preparing for shipment`,
     carrier: null,
+    carrierKey: null,
     event: null,
     eventTime: null,
     expected: null,
@@ -553,6 +562,61 @@ const collapseLabelCreated = (items) => {
   rest.splice(Math.min(first, rest.length), 0, summary);
   return rest;
 };
+
+/* Amazon orders ship in bursts, so six near-identical rows can arrive at once
+ * and consume the whole display while a parcel from another carrier waits
+ * below the fold. Cap how many rows any one carrier may hold and fold the rest
+ * into a single line.
+ *
+ * Anything needing action is never folded away — that is the entire point of
+ * the display — and a carrier is left alone unless folding actually saves
+ * space, since replacing one row with a "1 more" row gains nothing and loses
+ * the detail. */
+const collapseByCarrier = (items, maxPerCarrier, showCarrier) => {
+  if (!Number.isFinite(maxPerCarrier) || maxPerCarrier < 1) return items;
+
+  const foldable = (item) => !item.collapsed && !item.needsAction && item.carrierKey;
+
+  const totals = new Map();
+  for (const item of items)
+    if (foldable(item)) totals.set(item.carrierKey, (totals.get(item.carrierKey) || 0) + 1);
+
+  const seen = new Map();
+  const out = [];
+  for (const item of items) {
+    if (!foldable(item)) { out.push(item); continue; }
+
+    const hidden = totals.get(item.carrierKey) - maxPerCarrier;
+    if (hidden < 2) { out.push(item); continue; }   // not worth folding
+
+    const n = (seen.get(item.carrierKey) || 0) + 1;
+    seen.set(item.carrierKey, n);
+    if (n <= maxPerCarrier) out.push(item);
+    else if (n === maxPerCarrier + 1) out.push(carrierSummary(item, hidden, showCarrier));
+    // everything after that is already counted in the summary
+  }
+  return out;
+};
+
+const carrierSummary = (item, hidden, showCarrier) => ({
+  key: `__collapsed_carrier_${item.carrierKey}__`,
+  statusCode: null,
+  statusLabel: null,
+  tone: "dim",
+  needsAction: false,
+  rank: item.rank,
+  description: showCarrier && item.carrier
+    ? `${hidden} more from ${item.carrier}`
+    : `${hidden} more parcels`,
+  carrier: null,
+  carrierKey: null,
+  event: null,
+  eventTime: null,
+  expected: null,
+  dateUnknown: false,
+  sortTime: null,
+  collapsed: true
+});
 
 module.exports = {
   parseEventDate,

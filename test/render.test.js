@@ -212,7 +212,7 @@ test("rows fade towards the bottom of the list", () => {
       tracking_number: `T${i}`,
       events: [{ event: "In transit", date: `2026-08-24 1${i}:00` }] });
 
-  const harness = mount(payloadFor({ deliveries }, { fadePoint: 0.4 }));
+  const harness = mount(payloadFor({ deliveries }, { fadePoint: 0.4, maxPerCarrier: 0 }));
   const opacities = harness.html.split("\n")
     .filter((line) => line.includes("parcel-row"))
     .map((line) => {
@@ -226,7 +226,7 @@ test("rows fade towards the bottom of the list", () => {
     assert.ok(opacities[i] <= opacities[i - 1], `row ${i} is not dimmer than row ${i - 1}`);
   assert.ok(opacities[4] > 0, "the last row is never invisible");
 
-  const noFade = mount(payloadFor({ deliveries }, { fadePoint: 0 }));
+  const noFade = mount(payloadFor({ deliveries }, { fadePoint: 0, maxPerCarrier: 0 }));
   assert.ok(!noFade.html.includes("opacity"));
 });
 

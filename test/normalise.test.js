@@ -229,10 +229,123 @@ test("the collapsed row counts against maxItems as a single row", () => {
     deliveries.push(delivery({ status_code: 8, tracking_number: `A${i}`,
       events: [{ event: "Preparing for shipment", date: "--//--" }] }));
 
-  const result = build({ deliveries }, { config: { maxItems: 5 } });
+  const result = build({ deliveries }, { config: { maxItems: 5, maxPerCarrier: 0 } });
   assert.equal(result.items.length, 5);
   assert.equal(result.items[4].description, "6 preparing for shipment");
   assert.equal(result.total, 5);
+});
+
+test("one carrier cannot consume the whole display", () => {
+  // Taken from a live mirror: six Amazon orders shipped together and filled
+  // every slot, hiding a UPS parcel and a FedEx one that was out for delivery.
+  const amazon = (i) => delivery({
+    carrier_code: "amzlus", description: `Amazon item ${i}`, tracking_number: `A${i}`,
+    events: [{ event: "Processed at carrier facility", date: eventAgo(i) }]
+  });
+  const result = build({ deliveries: [
+    ...[1, 2, 3, 4, 5, 6].map(amazon),
+    delivery({ carrier_code: "ups", description: "Coffee Beans", tracking_number: "U1" }),
+    delivery({ carrier_code: "fedex", description: "Something important",
+      status_code: 4, tracking_number: "F1" })
+  ] });
+
+  const shown = result.items.map((i) => i.description);
+  assert.ok(shown.includes("Something important"), "the out-for-delivery parcel survives");
+  assert.ok(shown.includes("Coffee Beans"), "so does the other carrier");
+  assert.equal(shown.filter((d) => d.startsWith("Amazon item")).length, 2, "capped at two");
+  assert.ok(shown.includes("4 more from Amazon US"));
+
+  const summary = result.items.find((i) => i.description === "4 more from Amazon US");
+  assert.equal(summary.collapsed, true);
+  assert.equal(summary.tone, "dim");
+  assert.equal(summary.statusLabel, null);
+});
+
+test("a parcel needing action is never folded into a carrier summary", () => {
+  const amazon = (i, over = {}) => delivery({
+    carrier_code: "amzlus", description: `Amazon item ${i}`, tracking_number: `A${i}`,
+    events: [{ event: "Processed", date: eventAgo(i) }], ...over
+  });
+  const result = build({ deliveries: [
+    ...[1, 2, 3, 4, 5, 6].map((i) => amazon(i)),
+    amazon(9, { status_code: 7, description: "Amazon exception" }),
+    amazon(8, { status_code: 3, description: "Amazon to collect" })
+  ] }, { config: { maxItems: 10 } });
+
+  const shown = result.items.map((i) => i.description);
+  assert.ok(shown.includes("Amazon exception"));
+  assert.ok(shown.includes("Amazon to collect"));
+  assert.equal(result.items.filter((i) => i.needsAction).length, 2);
+  // The informational ones are still capped around them.
+  assert.ok(shown.some((d) => /more from Amazon US/.test(d)));
+});
+
+test("a carrier is left alone when folding would not save space", () => {
+  // Replacing one row with a "1 more" row costs the same and says less.
+  const amazon = (i) => delivery({
+    carrier_code: "amzlus", description: `Amazon item ${i}`, tracking_number: `A${i}`,
+    events: [{ event: "Processed", date: eventAgo(i) }]
+  });
+  const three = build({ deliveries: [1, 2, 3].map(amazon) });
+  assert.equal(three.items.length, 3);
+  assert.ok(!three.items.some((i) => i.collapsed));
+
+  // Four is where it starts paying off.
+  const four = build({ deliveries: [1, 2, 3, 4].map(amazon) });
+  assert.equal(four.items.length, 3);
+  assert.equal(four.items[2].description, "2 more from Amazon US");
+});
+
+test("the carrier cap can be turned off, and respects showCarrier", () => {
+  const amazon = (i) => delivery({
+    carrier_code: "amzlus", description: `Amazon item ${i}`, tracking_number: `A${i}`,
+    events: [{ event: "Processed", date: eventAgo(i) }]
+  });
+  const off = build({ deliveries: [1, 2, 3, 4, 5, 6].map(amazon) },
+    { config: { maxPerCarrier: 0, maxItems: 10 } });
+  assert.equal(off.items.length, 6);
+  assert.ok(!off.items.some((i) => i.collapsed));
+
+  // With carrier names switched off, the summary cannot name one.
+  const unnamed = build({ deliveries: [1, 2, 3, 4, 5, 6].map(amazon) },
+    { config: { showCarrier: false } });
+  assert.ok(unnamed.items.some((i) => i.description === "4 more parcels"));
+});
+
+test("each carrier is capped independently", () => {
+  const of = (code, i) => delivery({
+    carrier_code: code, description: `${code} ${i}`, tracking_number: `${code}${i}`,
+    events: [{ event: "Processed", date: eventAgo(i) }]
+  });
+  const result = build({ deliveries: [
+    ...[1, 2, 3, 4, 5].map((i) => of("amzlus", i)),
+    ...[1, 2, 3, 4].map((i) => of("ups", i))
+  ] }, { config: { maxItems: 20 } });
+
+  const shown = result.items.map((i) => i.description);
+  assert.ok(shown.includes("3 more from Amazon US"));
+  assert.ok(shown.includes("2 more from UPS"));
+  assert.equal(shown.filter((d) => /^amzlus /.test(d)).length, 2);
+  assert.equal(shown.filter((d) => /^ups /.test(d)).length, 2);
+});
+
+test("the status 8 collapse still runs before the carrier cap", () => {
+  const result = build({ deliveries: [
+    ...[1, 2, 3, 4, 5].map((i) => delivery({
+      carrier_code: "amzlus", status_code: 8, description: `Preparing ${i}`,
+      tracking_number: `P${i}`, events: [{ event: "Preparing for shipment", date: "--//--" }]
+    })),
+    ...[1, 2, 3, 4].map((i) => delivery({
+      carrier_code: "amzlus", description: `Transit ${i}`, tracking_number: `T${i}`,
+      events: [{ event: "Processed", date: eventAgo(i) }]
+    }))
+  ] }, { config: { maxItems: 10 } });
+
+  const shown = result.items.map((i) => i.description);
+  assert.ok(shown.includes("5 preparing for shipment"), "the status 8 rule still fires");
+  assert.ok(shown.includes("2 more from Amazon US"), "and the cap folds the rest");
+  // The status 8 summary is not itself swallowed by the carrier cap.
+  assert.equal(shown.filter((d) => /preparing for shipment/.test(d)).length, 1);
 });
 
 test("status 5 is dim inside the grace period and promoted after it", () => {
@@ -266,7 +379,7 @@ test("needs-action states sort above the informational ones", () => {
     status_code: code,
     tracking_number: `S${code}`,
     events: [{ event: "Event", date: eventAgo(1) }]
-  })) }, { config: { maxItems: 20 } });
+  })) }, { config: { maxItems: 20, maxPerCarrier: 0 } });
 
   assert.deepEqual(result.items.map((i) => i.statusCode), [7, 6, 3, 4, 2, 8, 0]);
   assert.deepEqual(result.items.map((i) => i.needsAction),
@@ -411,15 +524,16 @@ test("no date format invents a clock time when the source had none", () => {
   // NOW on purpose: a date more than a week out formats identically whether or
   // not it carried a time, so only a recent one can tell the two apart.
   const shapes = [
-    { key: "DOTTED", bare: "23.08.2026", timed: "23.08.2026 14:05" },
-    { key: "ISO", bare: "2026-08-23", timed: "2026-08-23 14:05" },
-    { key: "USLONG", bare: "August 23, 2026", timed: "August 23, 2026 14:05" },
-    { key: "AMAZON", bare: "Sunday, August 23 ", timed: "Sunday, August 23 2:05 PM" }
+    { key: "DOTTED", carrier: "dp", bare: "23.08.2026", timed: "23.08.2026 14:05" },
+    { key: "ISO", carrier: "ups", bare: "2026-08-23", timed: "2026-08-23 14:05" },
+    { key: "USLONG", carrier: "fedex", bare: "August 23, 2026", timed: "August 23, 2026 14:05" },
+    { key: "AMAZON", carrier: "amzlus", bare: "Sunday, August 23 ", timed: "Sunday, August 23 2:05 PM" }
   ];
 
   const render = (pick) => {
     const result = build({ deliveries: shapes.map((shape) => delivery({
       tracking_number: shape.key,
+      carrier_code: shape.carrier,
       events: [{ event: "Scan", date: shape[pick] }]
     })) }, { config: { maxItems: 10 } });
     return Object.fromEntries(result.items.map((i) => [i.key, i.eventTime]));

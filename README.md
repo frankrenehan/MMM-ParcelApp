@@ -108,6 +108,7 @@ startup and shows `Parcel: API key not configured` rather than failing quietly.
     apiKeyEnvVar: "PARCEL_API_KEY", // name of the env var, not the key
     updateInterval: 20 * 60 * 1000, // 20 min
     maxItems: 6,
+    maxPerCarrier: 2,
     deliveredWindowHours: 48,
     notFoundGraceHours: 24,
     showCarrier: true,
@@ -122,7 +123,8 @@ startup and shows `Parcel: API key not configured` rather than failing quietly.
 |---|---|---|
 | `apiKeyEnvVar` | `"PARCEL_API_KEY"` | Name of the environment variable holding the key. |
 | `updateInterval` | `1200000` (20 min) | Clamped to a **5 minute floor**. See below. |
-| `maxItems` | `6` | Rows to display. The collapsed summary row counts as one. |
+| `maxItems` | `6` | Rows to display. A collapsed summary row counts as one. |
+| `maxPerCarrier` | `2` | Rows any one carrier may hold before the rest are folded into a summary. `0` disables it. |
 | `deliveredWindowHours` | `48` | How long a delivered parcel stays on screen. |
 | `notFoundGraceHours` | `24` | How long a "not found" stays dim before being promoted. |
 | `showCarrier` | `true` | Show the carrier name in the second line. |
@@ -181,6 +183,17 @@ promoted into the needs-attention group where you will actually notice it. The
 clock runs from the latest event, or from when the module first saw the parcel
 if it has no events. That first-seen clock is in memory only, so restarting
 MagicMirror restarts it.
+
+**No single carrier can take over the display.** Amazon orders ship in bursts,
+so six of them can go in transit at once, every row reading `In transit · Due
+Tuesday`, while the UPS parcel you actually care about waits below the fold.
+Beyond `maxPerCarrier` rows, the rest fold into one dim `4 more from Amazon US`
+line.
+
+Two things are deliberately exempt. Anything needing action is never folded —
+an Amazon exception still gets its own row, because that is the entire point of
+the display. And a carrier is left alone unless folding actually saves space:
+replacing a single row with a `1 more` row costs the same and says less.
 
 **Amazon "preparing for shipment" rows are collapsed.** The Parcel app's Amazon
 integration adds every order, and a handful of identical status-8 rows would
