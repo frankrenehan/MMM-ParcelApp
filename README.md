@@ -316,6 +316,7 @@ assertions made against the DOM that comes out.
 | `parcel-data.js` | Pure functions: parsing, filtering, sorting, formatting. |
 | `MMM-ParcelApp.css` | Styling. See the custom properties below. |
 | `tools/preview.js` | Renders the module to a standalone HTML page. |
+| `tools/date-shapes.js` | Reports what the live API is sending, safely. |
 | `test/dom-stub.js`, `test/node-helper-stub.js` | Stand-ins for MagicMirror, so the tests need no mirror. |
 
 `parcel-data.js` exists so the normalisation logic can be unit tested without
@@ -405,11 +406,45 @@ rejected.
 of them, trailing garbage, a clock-change transition, and a December date
 evaluated in January.
 
+## When a carrier turns up that this has not met
+
+Two symptoms, both deliberately visible rather than silent: an in-flight parcel
+shows **no time** on its second line, or a delivered parcel is marked
+`Date unknown` in amber. Neither ever hides the parcel.
+
+The unrecognised string is logged with its carrier code, and nothing else from
+the delivery:
+
+```bash
+pm2 logs MagicMirror --lines 500 --nostream | grep "unrecognised event date format"
+```
+
+For the fuller picture, ask the live API what it is actually sending:
+
+```bash
+curl -s -H "api-key: $PARCEL_API_KEY" \
+  "https://api.parcel.app/external/deliveries/?filter_mode=recent" \
+  | node tools/date-shapes.js
+```
+
+That prints counts, status codes, carrier codes, and the *shapes* of every date
+string — `2026-08-16 19:00:59.208` reports as `N-N-N N:N:N.N` — flagging any the
+parser could not read and printing those few in full. No descriptions, no
+tracking numbers, no `extra_information`, no locations. The output is safe to
+paste into a bug report, and the unreadable strings are exactly what is needed
+to add support for the new format.
+
+A new shape usually costs one branch in `matchEventDate` and one test. Adding
+FedEx's millisecond variant took two lines.
+
 ## Known limitations
 
-- **How far back `filter_mode=recent` reaches is not documented, and has not
-  been confirmed against a live account.** The 48-hour filter is applied here
-  regardless, so this only affects how much data crosses the wire.
+- **How far back `filter_mode=recent` reaches is not documented.** Measured
+  against a live account it returned 10 of that account's 19 deliveries, so it
+  does filter; the one completed delivery among them was 18 hours old. That
+  puts its reach at 18 hours or more, and no closer. The 48-hour window is
+  applied here regardless, so the only consequence is whether that window does
+  real work or is redundant.
 - Event times are rendered as absolute clock times rather than "2h ago", so
   they cannot go stale between polls. The day boundary can therefore be up to
   one poll interval late in relabelling yesterday's times.
