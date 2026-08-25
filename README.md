@@ -62,9 +62,37 @@ module.exports = {
 };
 ```
 
+Then re-read the ecosystem file — **pass the file, not the app name**:
+
 ```bash
-pm2 restart MagicMirror --update-env
+pm2 restart ~/ecosystem.config.js --update-env
 ```
+
+`pm2 restart MagicMirror --update-env` looks like it should work and does not.
+Restarting by name refreshes the environment from the *current shell*, which
+does not have your new variable in it, so the module comes back up still
+reporting the key as unset. If it will not take at all, the blunt version always
+works:
+
+```bash
+pm2 delete MagicMirror && pm2 start ~/ecosystem.config.js
+```
+
+To confirm pm2 actually has the variable, without printing the key itself:
+
+```bash
+pm2 env 0 | grep -c PARCEL_API_KEY
+```
+
+`1` means it is there, `0` means it is not (use the id from `pm2 list` if
+MagicMirror is not process 0). The module says which it found in the log:
+
+```bash
+pm2 logs MagicMirror --lines 100 --nostream | grep ParcelApp
+```
+
+`polling every 20 min` on startup means the key was read. `environment variable
+PARCEL_API_KEY is not set` means it was not.
 
 Keep that file out of git. If the variable is unset the module logs an error at
 startup and shows `Parcel: API key not configured` rather than failing quietly.
