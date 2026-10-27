@@ -318,6 +318,7 @@ assertions made against the DOM that comes out.
 | `tools/preview.js` | Renders the module to a standalone HTML page. |
 | `tools/date-shapes.js` | Reports what the live API is sending, safely. |
 | `test/dom-stub.js`, `test/node-helper-stub.js` | Stand-ins for MagicMirror, so the tests need no mirror. |
+| `test/fixtures/deliveries.json` | The sample response. **Synthetic — see `test/fixtures/README.md` before touching it.** |
 
 `parcel-data.js` exists so the normalisation logic can be unit tested without
 MagicMirror installed, and so the helper and the tests share one implementation.
